@@ -1,0 +1,6 @@
+jnius
+kivy
+plyer
+pypdf2
+pillow
+qrcode[pil]

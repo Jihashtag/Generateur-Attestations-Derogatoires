@@ -1,0 +1,11 @@
+{
+    "PRENOM":"Xxxx",
+    "NOM":"Yyyy",
+    "NAISSANCE":"01/01/2020",
+    "VILLEN":"Paris",
+    "ADRESSE":"01 rue Xyyyy",
+    "CPPPP":"75015",
+    "DELTA": 10,
+    "AUTO_OPEN": "",
+    "VILLE":"Zzzzz"
+}
