@@ -4,7 +4,8 @@ package.name = attestation
 package.domain = io.jihashtag
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,pdf
-version = 0.5requirements = python3,Cython,kivy,plyer,pypdf2,pillow,jnius,qrcode[pil]
+version = 0.5
+requirements = python3,Cython,kivy,plyer,pypdf2,pillow,jnius,qrcode[pil]
 icon.filename = logo_jiha.png
 orientation = portrait
 osx.python_version = 3
