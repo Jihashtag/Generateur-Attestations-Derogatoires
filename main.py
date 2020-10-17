@@ -38,7 +38,7 @@ CONFIG = {
 
 class MainApp(App):
     def open_file(self, x):
-        PA = autoclass('org.renpy.android.PythonActivity')
+        PA = autoclass('org.kivy.android.PythonActivity')
         Intent = autoclass('android.content.Intent')
         Uri = autoclass('android.net.Uri')
 
@@ -79,6 +79,7 @@ class MainApp(App):
         config["HHh"] = hour + 'h'
         config["(MM)"] = "(" + mins + ")"
         config["hMM"] = "h" + mins
+        config["HH\\072MM"] = "{}\\072{}".format(hour, mins)
 
         pdf_reader = PdfFileReader('final_{}.pdf'.format(n))
         page1 = pdf_reader.getPage(0)
@@ -102,12 +103,14 @@ class MainApp(App):
         img_reader = PdfFileReader('tmp.pdf')
         img_page = img_reader.getPage(0)
 
-        name = list(x for x in page1.get('/Resources').get('/XObject').keys() if 'mage' in x)[0]
-
-        page1.get('/Resources').get('/XObject')[name] = img_page.get('/Resources').get('/XObject').get('/image')
+        resources = page1.get('/Resources').getObject()
+        name = list(x for x in resources.get('/XObject').keys() if 'mage' in x or '/x7' == x)[0]
+        resources.get('/XObject')[name] = img_page.get('/Resources').get('/XObject').get('/image')
 
         page2 = pdf_reader.getPage(1)
-        page2.get('/Resources').get('/XObject')[name] = img_page.get('/Resources').get('/XObject').get('/image')
+        resources = page2.get('/Resources').getObject()
+        name = list(x for x in resources.get('/XObject').keys() if 'mage' in x or '/x7' == x)[0]
+        resources.get('/XObject')[name] = img_page.get('/Resources').get('/XObject').get('/image')
         pdf_writer = PdfFileWriter()
         pdf_writer.addPage(page1)
         pdf_writer.addPage(page2)
@@ -165,6 +168,7 @@ class MainApp(App):
         layout.add_widget(auto_open)
         layout.add_widget(Button(text="sport", on_press=self.make_pdf))
         layout.add_widget(Button(text="courses", on_press=self.make_pdf))
+        layout.add_widget(Button(text="feu", on_press=self.make_pdf))
         layout.add_widget(Button(text="""
         Never get back to this screen and generate both automatically when I open the app
         (Will use current settings... Advice: Double-check)
@@ -177,7 +181,7 @@ class MainApp(App):
 
     def build(self):
         if ANDROID:
-            PythonActivity = autoclass('org.renpy.android.PythonActivity')
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
             currentActivity = cast('android.app.Activity', PythonActivity.mActivity)
             currentActivity.requestPermissions([
                 "android.permission.READ_EXTERNAL_STORAGE",
@@ -187,9 +191,11 @@ class MainApp(App):
             os.stat("config.json")
             self.make_pdf('sport')
             self.make_pdf('courses')
+            self.make_pdf('feu')
             layout = BoxLayout(orientation='vertical')
             layout.add_widget(Button(text='sport', on_press=self.open_file))
             layout.add_widget(Button(text='courses', on_press=self.open_file))
+            layout.add_widget(Button(text='feu', on_press=self.open_file))
             return layout
         except FileNotFoundError:
             return self.generate_config()
