@@ -34,6 +34,8 @@
 Ce générateur d'attestations de déplacement dérogatoire fonctionne entièrement hors-ligne,
 Aucune connexion à internet n'est nécessaire.
 
+Ce générateur génère également les attestations de déplacement "couvre feu", pour les sorties d'animaux pour la période de couvre-feu des métropoles. La génération d'attestation "couvre feu" fonctionne également hors ligne.
+
 Le générateur possède 2 fonctionnements:
 
 - Génération d'attestation "légitimes" manuellement (traditionnellement, en saisissant les infos et cliquant sur "générer")
