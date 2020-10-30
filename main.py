@@ -64,7 +64,7 @@ class MainApp(App):
         except:
             config = CONFIG
 
-        chaine = "Cree le: AUJOURDUI a HHhHH; Nom: NOM; Prenom: PRENOM; Naissance: NAISSANCE a VILLEN; Adresse:ADRESSE CPPPP VILLE; Sortie: AUJOURDUI a HHhHH; Motifs: sport"
+        chaine = "Cree le: AUJOURDUI a HHhMM; Nom: NOM; Prenom: PRENOM; Naissance: NAISSANCE a VILLEN; Adresse:ADRESSE CPPPP VILLE; Sortie: AUJOURDUI a HHhMM; Motifs: sport"
 
         hour = str(datetime.datetime.now().hour)
         mins = datetime.datetime.now().minute - config["DELTA"]
@@ -75,7 +75,7 @@ class MainApp(App):
 
         config["AUJOURDUI"] = datetime.date.today().strftime("%d/%m/%Y")
         config["(HH)"] = "(" + hour + ")"
-        config["HHhHH"] = hour + 'h' + hour
+        config["HHhMM"] = hour + 'h' + mins
         config["HHh"] = hour + 'h'
         config["(MM)"] = "(" + mins + ")"
         config["hMM"] = "h" + mins
