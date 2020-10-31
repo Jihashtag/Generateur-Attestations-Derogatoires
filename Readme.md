@@ -41,6 +41,8 @@ Le générateur possède 2 fonctionnements:
 - Génération d'attestation "légitimes" manuellement (traditionnellement, en saisissant les infos et cliquant sur "générer")
 - Génération d'attestation "illégitimes" automatique au lancement de l'application
 
+Sur téléphone l'autorisation du gps permet de préremplir les champs de l'attestation de déplacement "légitime" avec l'adresse actuelle, et permet aux autres attestations de déplacements d'être générées automatiquement à l'adresse la plus proche.
+
 La génération légitime possède le même fonctionnement que la version du ministère de l'intérieur, il suffit de mettre un DELTA à 0 afin que l'attestation soit générée "officiellement" maintenant et à partir de maintenant.
 
 
