@@ -1,4 +1,5 @@
 jnius
+geopy
 kivy
 plyer
 pypdf2

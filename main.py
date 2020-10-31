@@ -3,8 +3,10 @@ import json
 import os
 import plyer
 import qrcode
+import time
 import zlib
 from collections import OrderedDict
+from geopy.geocoders import Nominatim
 from kivy import platform
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
@@ -16,8 +18,17 @@ from mimetypes import guess_type
 from PyPDF2 import PdfFileReader, PdfFileWriter
 
 if platform == 'android':
+
+    from android.permissions import request_permissions, Permission
     from jnius import autoclass, cast
     ANDROID = True
+
+    import ssl
+    import geopy.geocoders
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    geopy.geocoders.options.default_ssl_context = ctx
 else:
     def autoclass(*_):
         raise os.error("Can work only on Android")
@@ -37,49 +48,61 @@ CONFIG = {
 
 
 class MainApp(App):
+    config = None
+
     def open_file(self, x):
         PA = autoclass('org.kivy.android.PythonActivity')
         Intent = autoclass('android.content.Intent')
         Uri = autoclass('android.net.Uri')
+        currentActivity = cast('android.app.Activity', PA.mActivity)
 
         x = x if isinstance(x, str) else x.text
 
-        uri = 'content:///storage/emulated/0/Download/attestation_{}.pdf'.format(x)
+        uri = '/storage/emulated/0/Download/attestation_{}.pdf'.format(x)
 
         intent = Intent()
         intent.setAction(Intent.ACTION_VIEW)
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 
-        intent.setDataAndType(Uri.parse(uri), guess_type(uri)[0])
+        intent.setDataAndType(Uri.parse("content:/" + uri), guess_type(uri)[0])
 
-        currentActivity = cast('android.app.Activity', PA.mActivity)
         currentActivity.startActivity(intent)
+
+    def on_location(self, **kwargs):
+        lat_lon = "{lat}, {lon}".format(**kwargs)
+        geolocator = Nominatim(user_agent="attestations")
+        location = geolocator.reverse(lat_lon)
+        self.config["ADRESSE"] = "{house_number} {road}".format(**location.raw['address'])
+        self.config["VILLE"] = location.raw['address']['town']
+        self.config["CPPPP"] = location.raw['address']['postcode']
 
     def make_pdf(self, n):
         n = n if isinstance(n, str) else n.text
         filename = '/storage/emulated/0/Download/attestation_{}.pdf'.format(n) if ANDROID else './attestation_{}.pdf'.format(n)
-        try:
-            with open("config.json", "r") as f:
-                config = json.loads(f.read(), object_pairs_hook=OrderedDict)
-        except:
-            config = CONFIG
+
+        if self.gps:
+            time.sleep(2)
+            plyer.gps.stop()
+            self.gps = False
+            while not self.config['ADRESSE']:
+                time.sleep(1)
 
         chaine = "Cree le: AUJOURDUI a HHhMM; Nom: NOM; Prenom: PRENOM; Naissance: NAISSANCE a VILLEN; Adresse:ADRESSE CPPPP VILLE; Sortie: AUJOURDUI a HHhMM; Motifs: sport"
 
         hour = str(datetime.datetime.now().hour)
-        mins = datetime.datetime.now().minute - config["DELTA"]
+        mins = datetime.datetime.now().minute - self.config["DELTA"]
         if mins <= 10:
             mins = "00"
         else:
             mins = str(mins)
 
-        config["AUJOURDUI"] = datetime.date.today().strftime("%d/%m/%Y")
-        config["(HH)"] = "(" + hour + ")"
-        config["HHhMM"] = hour + 'h' + mins
-        config["HHh"] = hour + 'h'
-        config["(MM)"] = "(" + mins + ")"
-        config["hMM"] = "h" + mins
-        config["HH\\072MM"] = "{}\\072{}".format(hour, mins)
+        self.config["AUJOURDUI"] = datetime.date.today().strftime("%d/%m/%Y")
+        self.config["(HH)"] = "(" + hour + ")"
+        self.config["HHhMM"] = hour + 'h' + mins
+        self.config["HHh"] = hour + 'h'
+        self.config["(MM)"] = "(" + mins + ")"
+        self.config["hMM"] = "h" + mins
+        self.config["HH\\072MM"] = "{}\\072{}".format(hour, mins)
 
         pdf_reader = PdfFileReader('final_{}.pdf'.format(n))
         page1 = pdf_reader.getPage(0)
@@ -88,7 +111,7 @@ class MainApp(App):
         content = page1.get('/Contents').getObject()
         c = content.getData()
 
-        for k, v in config.items():
+        for k, v in self.config.items():
             if k in ["DELTA", "AUTO_OPEN"]:
                 continue
             c = c.replace(bytes(k, "utf-8"), bytes(v, "utf-8").replace(b"/", b"\\057"))
@@ -117,7 +140,7 @@ class MainApp(App):
         with open(filename, 'wb+') as f:
             pdf_writer.write(f)
         plyer.notification.notify(title='Attestation {}'.format(n), message=filename)
-        if config["AUTO_OPEN"]:
+        if self.config["AUTO_OPEN"]:
             self.open_file(n)
 
     def generate_config(self):
@@ -140,13 +163,20 @@ class MainApp(App):
                 f.write(content)
             self.stop()
 
+        if self.gps:
+            time.sleep(2)
+            plyer.gps.stop()
+            while not self.config['ADRESSE']:
+                time.sleep(1)
+
         layout = BoxLayout(orientation='vertical')
         for x in CONFIG:
             if x == "AUTO_OPEN":
                 continue
+            val = CONFIG[x] or x
             textinput = TextInput(
                 text=(
-                    x
+                    val
                     .replace("VILLEN", "VILLE DE NAISSANCE")
                     .replace("CPPPP", "Code Postal")
                 ),
@@ -180,13 +210,28 @@ class MainApp(App):
         return True
 
     def build(self):
+
+        try:
+            with open("config.json", "r") as f:
+                self.config = json.loads(f.read(), object_pairs_hook=OrderedDict)
+        except:
+            self.config = CONFIG
+
         if ANDROID:
-            PythonActivity = autoclass('org.kivy.android.PythonActivity')
-            currentActivity = cast('android.app.Activity', PythonActivity.mActivity)
-            currentActivity.requestPermissions([
-                "android.permission.READ_EXTERNAL_STORAGE",
-                "android.permission.WRITE_EXTERNAL_STORAGE"
+            request_permissions([
+                Permission.READ_EXTERNAL_STORAGE,
+                Permission.ACCESS_COARSE_LOCATION,
+                Permission.ACCESS_FINE_LOCATION,
+                Permission.WRITE_EXTERNAL_STORAGE
             ], 0)
+            try:
+                plyer.gps.configure(on_location=self.on_location)
+                plyer.gps.start()
+                self.gps = True
+            except:
+                self.gps = False
+        else:
+            self.gps = None
         try:
             os.stat("config.json")
             self.make_pdf('sport')
